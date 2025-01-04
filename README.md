@@ -147,6 +147,8 @@ Once `client.run()` is finished (after potentially multiple calls to agents and 
 | **messages**          | `List`  | A list of message objects generated during the conversation. Very similar to [Chat Completions `messages`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages), but with a `sender` field indicating which `Agent` the message originated from. |
 | **agent**             | `Agent` | The last agent to handle a message.                                                                                                                                                                                                                                          |
 | **context_variables** | `dict`  | The same as the input variables, plus any changes.                                                                                                                                                                                                                           |
+| **tools_called**      | `List`  | A list of all tools called during the conversation, including their names and arguments. This is only populated if `capture_tools_called=True` is passed to `client.run()`.                                                                                                  |
+| **internal_chatter**  | `List`  | A list of internal messages exchanged between agents and tools during the conversation. This is only populated if `capture_internal_chatter=True` is passed to `client.run()`.                                                                                              |
 
 ## Agents
 
@@ -334,6 +336,47 @@ Two new event types have been added:
 
 - `{"delim":"start"}` and `{"delim":"end"}`, to signal each time an `Agent` handles a single message (response or function call). This helps identify switches between `Agent`s.
 - `{"response": Response}` will return a `Response` object at the end of a stream with the aggregated (complete) response, for convenience.
+
+### Capturing Tools Called and Internal Chatter
+
+Swarm allows you to capture detailed information about the tools called and internal chatter during a conversation. These are not streamed in real-time but are included in the final `Response` object.
+
+To enable these features, pass the following flags to `client.run()`:
+
+- `capture_tools_called=True`: Captures all tools called during the conversation, including their names and arguments.
+- `capture_internal_chatter=True`: Captures all internal messages exchanged between agents and tools.
+
+Example:
+
+```python
+response = client.run(
+    agent=agent,
+    messages=[{"role": "user", "content": "What is the weather today?"}],
+    capture_tools_called=True,
+    capture_internal_chatter=True,
+)
+
+print("Tools Called:")
+for tool in response.tools_called:
+    print(f"Tool: {tool['tool_name']}, Arguments: {tool['arguments']}")
+
+print("\nInternal Chatter:")
+for message in response.internal_chatter:
+    print(message)
+```
+
+Output:
+
+```
+Tools Called:
+Tool: weather_api, Arguments: {"location": "New York"}
+
+Internal Chatter:
+Agent A: "Requesting weather data for New York."
+Tool weather_api: "Returning weather data: sunny, 75°F."
+```
+
+This feature is particularly useful for debugging and understanding the flow of execution in multi-agent systems.
 
 # Evaluations
 
