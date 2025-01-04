@@ -24,6 +24,8 @@ class Response(BaseModel):
     messages: List = []
     agent: Optional[Agent] = None
     context_variables: dict = {}
+    tools_called: List[dict] = []  
+    internal_chatter: List[dict] = []  
 
 
 class Result(BaseModel):

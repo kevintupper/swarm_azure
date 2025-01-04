@@ -145,11 +145,17 @@ class Swarm:
         debug: bool = False,
         max_turns: int = float("inf"),
         execute_tools: bool = True,
+        capture_tools_called: bool = False,
+        capture_internal_chatter: bool = False,
     ):
         active_agent = agent
         context_variables = copy.deepcopy(context_variables)
         history = copy.deepcopy(messages)
         init_len = len(messages)
+
+        # Initialize lists for tools_called and internal_chatter
+        tools_called = []
+        internal_chatter = []
 
         while len(history) - init_len < max_turns:
 
@@ -215,6 +221,16 @@ class Swarm:
             partial_response = self.handle_tool_calls(
                 tool_calls, active_agent.functions, context_variables, debug
             )
+
+            # Capture tools_called and internal_chatter if enabled
+            if capture_tools_called:
+                tools_called.extend(
+                    {"tool_name": tc.function.name, "arguments": tc.function.arguments}
+                    for tc in tool_calls
+                )
+            if capture_internal_chatter:
+                internal_chatter.extend(partial_response.messages)
+
             history.extend(partial_response.messages)
             context_variables.update(partial_response.context_variables)
             if partial_response.agent:
@@ -225,6 +241,8 @@ class Swarm:
                 messages=history[init_len:],
                 agent=active_agent,
                 context_variables=context_variables,
+                tools_called=tools_called if capture_tools_called else [],
+                internal_chatter=internal_chatter if capture_internal_chatter else [],
             )
         }
 
@@ -238,6 +256,8 @@ class Swarm:
         debug: bool = False,
         max_turns: int = float("inf"),
         execute_tools: bool = True,
+        capture_tools_called: bool = False,
+        capture_internal_chatter: bool = False,
     ) -> Response:
         if stream:
             return self.run_and_stream(
@@ -248,11 +268,17 @@ class Swarm:
                 debug=debug,
                 max_turns=max_turns,
                 execute_tools=execute_tools,
+                capture_tools_called=capture_tools_called,
+                capture_internal_chatter=capture_internal_chatter,
             )
         active_agent = agent
         context_variables = copy.deepcopy(context_variables)
         history = copy.deepcopy(messages)
         init_len = len(messages)
+
+        # Initialize lists for tools_called and internal_chatter
+        tools_called = []
+        internal_chatter = []
 
         while len(history) - init_len < max_turns and active_agent:
 
@@ -280,6 +306,16 @@ class Swarm:
             partial_response = self.handle_tool_calls(
                 message.tool_calls, active_agent.functions, context_variables, debug
             )
+
+            # Capture tools_called and internal_chatter if enabled
+            if capture_tools_called:
+                tools_called.extend(
+                    {"tool_name": tc.function.name, "arguments": tc.function.arguments}
+                    for tc in message.tool_calls
+                )
+            if capture_internal_chatter:
+                internal_chatter.extend(partial_response.messages)
+
             history.extend(partial_response.messages)
             context_variables.update(partial_response.context_variables)
             if partial_response.agent:
@@ -289,4 +325,6 @@ class Swarm:
             messages=history[init_len:],
             agent=active_agent,
             context_variables=context_variables,
+            tools_called=tools_called if capture_tools_called else [],
+            internal_chatter=internal_chatter if capture_internal_chatter else [],
         )
