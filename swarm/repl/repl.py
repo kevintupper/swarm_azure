@@ -58,7 +58,12 @@ def pretty_print_messages(messages) -> None:
 
 
 def run_demo_loop(
-    starting_agent, context_variables=None, stream=False, debug=False
+    starting_agent,
+    context_variables=None,
+    stream=False,
+    debug=False,
+    capture_tools_called=False,
+    capture_internal_chatter=False,
 ) -> None:
     client = Swarm()
     print("Starting Swarm CLI 🐝")
@@ -76,12 +81,24 @@ def run_demo_loop(
             context_variables=context_variables or {},
             stream=stream,
             debug=debug,
+            capture_tools_called=capture_tools_called,
+            capture_internal_chatter=capture_internal_chatter,
         )
 
         if stream:
             response = process_and_print_streaming_response(response)
         else:
             pretty_print_messages(response.messages)
+
+        if capture_tools_called and response.tools_called:
+            print("\n\033[93mTools Called:\033[0m")
+            for tool in response.tools_called:
+                print(f"  - Tool: {tool['tool_name']}, Arguments: {tool['arguments']}")
+
+        if capture_internal_chatter and response.internal_chatter:
+            print("\n\033[96mInternal Chatter:\033[0m")
+            for message in response.internal_chatter:
+                print(f"  - {message}")
 
         messages.extend(response.messages)
         agent = response.agent
